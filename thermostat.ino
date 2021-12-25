@@ -1,19 +1,31 @@
+// Dependencies:
+
+// uses dht 11 temperature sensor, using dht sensor library by adafruit, 
+// which also installs the other unified sensor lib
+
+// it is assumed that, if temperature buttons are used, they are HIGH by default, and LOW when depressed
+// the user can feel free to change it to be the other way around if that's desired
+// I personally use a 20k potentiometer for the temperature setting, which allows all 1023 analog resolution to be used
+// when cooling is on, a 10 amp relay like HiLetgo 2pcs 5V One Channel Relay Module Relay Switch with OPTO Isolation High Low Level Trigger is turned on
+// this can be connected to something like a window fan
+// temperature sensor is dht11, but others could bbe substituted
+
 #include "DHT.h"
 
-#define DHTPIN 2 
+#define DHTPIN 2 //temp sensor
 
-#define DHTTYPE DHT11
-#define POTPIN 0
-#define DOWNPIN 5
-#define UPPIN 4 
-#define RELAYPIN 13
-#define INDICATORPIN 12
-DHT dht(DHTPIN, DHTTYPE);
-int shouldCool;
-float tempTolerance;
-int prevDownSwitch;
-int prevUpSwitch;
-float desiredSwitch;
+#define DHTTYPE DHT11 // temp sensor
+#define POTPIN 0 // for potentiometer temperature setting
+#define DOWNPIN 5 // for temperature reduction button with button temp setting
+#define UPPIN 4  // for temperature increase with button temp setting
+#define RELAYPIN 13 // the pin that turns on the temperature changing device
+
+DHT dht(DHTPIN, DHTTYPE); // temp sensor initialization
+int shouldCool; //boolean to turn on the temperature changer
+float tempTolerance; // how far from the desired temperature you have to be to change device state
+int prevDownSwitch; // previous state of down button
+int prevUpSwitch; //previous state of up button
+float desiredSwitch; // current temperature that is desired, if buttons are used to change temp
 void setup() {
   // put your setup code here, to run once:
   pinMode(LED_BUILTIN, OUTPUT);
@@ -57,28 +69,26 @@ void sendSignalToThermostat(){
     digitalWrite(LED_BUILTIN, LOW);
   }
 }
+// get desired temperature from potentiometer
 float readDesiredPot(){
-  //potentiometer seems to like to max out around 400
-
-  float READINGS=30;
-  float POTMAX=1000;
-  float TEMP_RANGE=15;
-  float TEMP_BASE=68;
+  float READINGS=30; // number of samples to take
+  float POTMAX=1000; // max readout of potentiometer (used for scaling, can be approximate)
+  float TEMP_RANGE=15; // range of temperatures that can be set
+  float TEMP_BASE=68; // minimum temperature that can be set
   float sum=0;
-  // it is also very noisy, so use an average of 10 readings
+  // an older potentiometer was noisy, so use an average over a few readings to reduce noise
   for(int i=0; i<READINGS; i++){
     delay(10);
     sum+=analogRead(POTPIN);
   }
 
-
-  //divide by 40 for desired 10 degree temp range
   float desiredTemp=TEMP_BASE+((sum/READINGS)/(POTMAX/TEMP_RANGE));
   int digitalSignal = analogRead(POTPIN);
   Serial.print("analog signal ");
   Serial.println(sum/READINGS);
   return desiredTemp;
 }
+// get desired temperature from a switch
 float readDesiredSwitch(){
   int up = digitalRead(UPPIN);
   int down = digitalRead(DOWNPIN);
@@ -95,7 +105,7 @@ float readDesiredSwitch(){
   return desiredSwitch;
 }
 void loop() {
-  //delay is done by temp reader
+  //delay is done by temp reader in potentiometer mode
   Serial.println("-------------------");
   float actualTemp=readTemp();
   //float desiredTemp = readDesiredSwitch();
