@@ -26,6 +26,8 @@ float tempTolerance; // how far from the desired temperature you have to be to c
 int prevDownSwitch; // previous state of down button
 int prevUpSwitch; //previous state of up button
 float desiredSwitch; // current temperature that is desired, if buttons are used to change temp
+float prevDesiredTemp;
+float prevActualTemp;
 void setup() {
   // put your setup code here, to run once:
   pinMode(LED_BUILTIN, OUTPUT);
@@ -38,6 +40,8 @@ void setup() {
   prevDownSwitch=HIGH;
   prevUpSwitch=HIGH;
   desiredSwitch=75;
+  prevDesiredTemp=75;
+  prevActualTemp=75;
 }
 float readTemp(){
   float f = dht.readTemperature(true);
@@ -48,24 +52,33 @@ float readTemp(){
   return f;
 }
 void setCooling(float actualTemp, float desiredTemp){
-  Serial.write("actualTemp: ");
-  Serial.println(actualTemp);
-  Serial.write("desiredTemp: ");
-  Serial.println(desiredTemp);
+  if(actualTemp!=prevActualTemp || desiredTemp!=prevDesiredTemp){
+    Serial.println("-------------------");
+    Serial.write("actualTemp: ");
+    Serial.println(actualTemp);
+    Serial.write("desiredTemp: ");
+    Serial.println(desiredTemp);
+    if(shouldCool){
+      Serial.println("cooling on");
+    }
+    else{
+      Serial.println("cooling off");
+    }
+  }
   if(actualTemp<desiredTemp-tempTolerance){
     shouldCool=0;
   }
   if(actualTemp>desiredTemp+tempTolerance){
     shouldCool=1;
   }
+  prevActualTemp=actualTemp;
+  prevDesiredTemp=desiredTemp;
 }
 void sendSignalToThermostat(){
   if(shouldCool){
-    Serial.println("cooling on");
     digitalWrite(LED_BUILTIN, HIGH);
   }
   else{
-    Serial.println("cooling off");
     digitalWrite(LED_BUILTIN, LOW);
   }
 }
@@ -83,9 +96,10 @@ float readDesiredPot(){
   }
 
   float desiredTemp=TEMP_BASE+((sum/READINGS)/(POTMAX/TEMP_RANGE));
+  desiredTemp=((int)(desiredTemp*10))/10.0;
   int digitalSignal = analogRead(POTPIN);
-  Serial.print("analog signal ");
-  Serial.println(sum/READINGS);
+  //  Serial.print("analog signal ");
+  //  Serial.println(sum/READINGS);
   return desiredTemp;
 }
 // get desired temperature from a switch
@@ -106,7 +120,6 @@ float readDesiredSwitch(){
 }
 void loop() {
   //delay is done by temp reader in potentiometer mode
-  Serial.println("-------------------");
   float actualTemp=readTemp();
   //float desiredTemp = readDesiredSwitch();
   float desiredTemp = readDesiredPot();
