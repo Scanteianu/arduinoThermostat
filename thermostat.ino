@@ -18,7 +18,7 @@
 #define POTPIN 0 // for potentiometer temperature setting
 #define DOWNPIN 5 // for temperature reduction button with button temp setting
 #define UPPIN 4  // for temperature increase with button temp setting
-#define RELAYPIN 13 // the pin that turns on the temperature changing device
+#define RELAYPIN 12 // the pin that turns on the temperature changing device
 
 DHT dht(DHTPIN, DHTTYPE); // temp sensor initialization
 int shouldCool; //boolean to turn on the temperature changer
@@ -30,13 +30,13 @@ float prevDesiredTemp;
 float prevActualTemp;
 void setup() {
   // put your setup code here, to run once:
-  pinMode(LED_BUILTIN, OUTPUT);
   pinMode(UPPIN, INPUT);
-  pinMode(DOWNPIN,INPUT);
+  pinMode(DOWNPIN, INPUT);
+  pinMode(RELAYPIN,OUTPUT);
   Serial.begin(9600);
   dht.begin();
   shouldCool=0;
-  tempTolerance=1.0;
+  tempTolerance=0.75;
   prevDownSwitch=HIGH;
   prevUpSwitch=HIGH;
   desiredSwitch=75;
@@ -52,6 +52,15 @@ float readTemp(){
   return f;
 }
 void setCooling(float actualTemp, float desiredTemp){
+  if(actualTemp<desiredTemp-tempTolerance){
+    shouldCool=0;
+  }
+  if(actualTemp>desiredTemp+tempTolerance){
+    shouldCool=1;
+  }
+}
+
+void displayStatusSerialPort(int shouldCool, float actualTemp, float desiredTemp){
   if(actualTemp!=prevActualTemp || desiredTemp!=prevDesiredTemp){
     Serial.println("-------------------");
     Serial.write("actualTemp: ");
@@ -65,21 +74,15 @@ void setCooling(float actualTemp, float desiredTemp){
       Serial.println("cooling off");
     }
   }
-  if(actualTemp<desiredTemp-tempTolerance){
-    shouldCool=0;
-  }
-  if(actualTemp>desiredTemp+tempTolerance){
-    shouldCool=1;
-  }
   prevActualTemp=actualTemp;
   prevDesiredTemp=desiredTemp;
 }
 void sendSignalToThermostat(){
   if(shouldCool){
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(RELAYPIN, HIGH);
   }
   else{
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(RELAYPIN, LOW);
   }
 }
 // get desired temperature from potentiometer
@@ -124,6 +127,7 @@ void loop() {
   //float desiredTemp = readDesiredSwitch();
   float desiredTemp = readDesiredPot();
   setCooling(actualTemp,desiredTemp);
+  displayStatusSerialPort(shouldCool, actualTemp, desiredTemp);
   sendSignalToThermostat();
   //delay(200);
   
