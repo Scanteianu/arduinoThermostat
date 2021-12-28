@@ -3,7 +3,7 @@
 // uses dht 11 temperature sensor, using dht sensor library by adafruit, 
 // which also installs the other unified sensor lib
 
-// uses LiquidCrystal I2C library by Marco Schwartz for a 8x2 lcd
+// uses LiquidCrystal I2C library by Marco Schwartz for a 16x2 lcd using 4 pin i2c connection, pins 20 and 21 are sda and scl on arduino mega, respectively
 
 // it is assumed that, if temperature buttons are used, they are HIGH by default, and LOW when depressed
 // the user can feel free to change it to be the other way around if that's desired
