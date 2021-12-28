@@ -3,6 +3,8 @@
 // uses dht 11 temperature sensor, using dht sensor library by adafruit, 
 // which also installs the other unified sensor lib
 
+// uses LiquidCrystal I2C library by Marco Schwartz for a 8x2 lcd
+
 // it is assumed that, if temperature buttons are used, they are HIGH by default, and LOW when depressed
 // the user can feel free to change it to be the other way around if that's desired
 // I personally use a 20k potentiometer for the temperature setting, which allows all 1023 analog resolution to be used
@@ -11,6 +13,8 @@
 // temperature sensor is dht11, but others could bbe substituted
 
 #include "DHT.h"
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
 
 #define DHTPIN 2 //temp sensor
 
@@ -21,6 +25,8 @@
 #define RELAYPIN 12 // the pin that turns on the temperature changing device
 
 DHT dht(DHTPIN, DHTTYPE); // temp sensor initialization
+LiquidCrystal_I2C lcd(0x27,16,2); 
+
 int shouldCool; //boolean to turn on the temperature changer
 float tempTolerance; // how far from the desired temperature you have to be to change device state
 int prevDownSwitch; // previous state of down button
@@ -42,6 +48,8 @@ void setup() {
   desiredSwitch=75;
   prevDesiredTemp=75;
   prevActualTemp=75;
+  lcd.init(); 
+  lcd.backlight();
 }
 float readTemp(){
   float f = dht.readTemperature(true);
@@ -76,6 +84,25 @@ void displayStatusSerialPort(int shouldCool, float actualTemp, float desiredTemp
   }
   prevActualTemp=actualTemp;
   prevDesiredTemp=desiredTemp;
+}
+void displayStatusLCD(int shouldCool, float actualTemp, float desiredTemp){
+  lcd.setCursor(0,0);
+  lcd.print("Actual ");
+  lcd.setCursor(7,0);
+  lcd.print(actualTemp);
+  lcd.setCursor(0,1);
+  lcd.print("Target ");
+  lcd.setCursor(7,1);
+  lcd.print(desiredTemp);
+  lcd.print("*");
+  if(shouldCool){
+    lcd.print("ON ");
+  }
+  else{
+    lcd.print("OFF");
+  }
+
+  
 }
 void sendSignalToThermostat(){
   if(shouldCool){
@@ -128,6 +155,7 @@ void loop() {
   float desiredTemp = readDesiredPot();
   setCooling(actualTemp,desiredTemp);
   displayStatusSerialPort(shouldCool, actualTemp, desiredTemp);
+  displayStatusLCD(shouldCool, actualTemp, desiredTemp);
   sendSignalToThermostat();
   //delay(200);
   
